@@ -1,0 +1,109 @@
+SISTEM API ABSENSI (RANGKUMAN FUNGSI)
+
+1. AUTH CONTROLLER
+   Fungsi:
+
+* Menghandle proses login user dan admin
+* Generate token (JWT) untuk autentikasi
+  Tujuan:
+* Supaya setiap request ke API bisa dikenali (siapa usernya & rolenya)
+
+---
+
+2. AUTH MIDDLEWARE
+   Fungsi:
+
+* Mengecek apakah user sudah login (validasi token JWT)
+* Mengambil data user dari token (id, role)
+  Tujuan:
+* Mengamankan endpoint agar tidak bisa diakses sembarang orang
+
+---
+
+3. ROLE MIDDLEWARE
+   Fungsi:
+
+* Membatasi akses berdasarkan role (user / admin)
+  Tujuan:
+* User hanya bisa akses fitur tertentu
+* Admin bisa akses fitur lebih luas (misalnya lihat log)
+
+---
+
+4. QR CONTROLLER
+   Fungsi:
+
+* Generate QR Code dinamis untuk user
+  Isi QR:
+* userId + timestamp + hash (keamanan)
+  Tujuan:
+* Digunakan sebagai "identitas" saat absensi
+* Mencegah pemalsuan atau titip absen (karena QR selalu berubah)
+
+---
+
+5. LOG ABSEN CONTROLLER
+   Fungsi:
+
+* Menerima hasil scan QR dari device/admin
+* Validasi QR (asli atau tidak, expired atau tidak)
+* Cek apakah user sudah absen hari ini
+* Menyimpan data absensi ke database
+  Tujuan:
+* Menjadi inti pencatatan kehadiran user
+
+---
+
+6. ADMIN CONTROLLER
+   Fungsi:
+
+* Mengambil dan menampilkan data log absensi
+  Tujuan:
+* Memudahkan admin melihat riwayat kehadiran semua user
+
+---
+
+7. DATABASE (LOG ABSEN TABLE)
+   Fungsi:
+
+* Menyimpan data absensi user
+  Isi data:
+* user_id
+* scan_time (waktu absen)
+  Tujuan:
+* Menjadi tempat penyimpanan utama data kehadiran
+
+---
+
+8. FLOW SISTEM ABSENSI
+
+9. User login
+
+10. User mendapatkan QR Code
+
+11. Admin / device scan QR
+
+12. QR dikirim ke API
+
+13. Log Absen Controller:
+
+    * validasi QR
+    * cek user
+    * simpan absensi
+
+14. Admin melihat log absensi
+
+---
+
+KESIMPULAN:
+
+* QR Controller = pembuat identitas absensi
+* Log Absen Controller = pencatat absensi
+* Middleware = pengaman sistem
+* Admin Controller = monitoring data
+
+Sistem ini aman jika:
+
+* QR bersifat dinamis
+* Ada validasi token (JWT)
+* Ada pembatasan role
