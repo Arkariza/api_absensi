@@ -1,21 +1,17 @@
 const express = require ('express')
 
 function adminCheck(req, res, next) {
-    const userRole = req.user.role; 
-        if (userRole === 1 ) {
-            next();
-        } else {
-            res.status(403).json({Message : "Akses Ditolak"}) 
-        }
+    if (req.user.role_id === 1) {
+        return next()
+    }
+    return res.status(403).json({ message: "Akses ditolak (Admin only)" })
 }
 
 function userCheck(req, res, next) {
-    const userRole = req.user.role; 
-    if (userRole === 2 ) {
-        next ();
-    } else {
-        res.status(403).json({Message : "Silahkan Login Terlebih Dahulu."})
+    if (req.user.role_id === 2 ) {
+        return next ()
     }
+    return res.status(403).json({Message : "Silahkan Login Terlebih Dahulu."})
 }
 
-module.exports = {adminCheck, userCheck};
+module.exports = {adminCheck, userCheck}
