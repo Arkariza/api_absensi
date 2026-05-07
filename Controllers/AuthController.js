@@ -43,7 +43,7 @@ module.exports = {
 },
 
 // Login
-    login: async (req, res, next) =>{
+    login: async(req, res, next) =>{
         try{
             const { username, pin } = req.body;
             if (!username || !pin) return res.status(400).json({ message: 'username & pin wajib'});
@@ -64,13 +64,13 @@ module.exports = {
                 token,
                 user: { id: user.id, username: user.username, no_hp: user.no_hp, nama_jurusan: user.nama_jurusan}
             });
-        } catch (err){
+        }catch(err){
             next(err);
         }
     },
 
     //update pin
-    updatePin: async (req, res, next) => {
+    updatePin: async(req, res, next) => {
         try {
             const { oldPin, newPin } = req.body;
             const userId = req.user.id;
@@ -106,7 +106,21 @@ module.exports = {
 
             return res.json({ message: "PIN berhasil diupdate" })
 
-        } catch (err) {
+        }catch(err){
+            next(err)
+        }
+    },
+
+    getProfile: async(req, res, next) => {
+        try{
+            const [rows] = await pool.execute(
+                `SELECT username, no_hp, nama_jurusan FROM users WHERE id = ?`, [req.user.id]
+            )
+            if (rows.length === 0) {
+                return res.status(404).json({message: "User tidak ditemukan"})
+            }   
+            return res.json({message: "Profile berhasil diambil",user: rows[0]})
+        }catch(err){
             next(err)
         }
     }

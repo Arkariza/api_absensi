@@ -9,5 +9,6 @@ const validasi = require("../Middleware/ValidationMiddleware")
 router.post("/register", validasi.validateRegister, authController.register)
 router.post("/login", validasi.validateLogin, authController.login)
 router.put("/update-pin", validasi.validateUpdatePin, auth, authController.updatePin)
+router.get("/get-profile", auth, authController.getProfile)
 
 module.exports = router
