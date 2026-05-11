@@ -34,7 +34,7 @@ exports.scanQR = async(req, res) => {
         }
 
         const [user] = await db.query(
-            "SELECT id, nama FROM users WHERE id = ?",
+            "SELECT id, username FROM users WHERE id = ?",
             [userId]
         )
 
@@ -43,7 +43,7 @@ exports.scanQR = async(req, res) => {
         }
 
         const [already] = await db.query(
-            "SELECT id FROM log_absen WHERE id_user = ? AND DATE(absen) = CURDATE()",
+            "SELECT id FROM log_absen WHERE idUser = ? AND DATE(absen) = CURDATE()",
             [userId]
         )
 
@@ -52,8 +52,8 @@ exports.scanQR = async(req, res) => {
         }
 
         await db.query(
-            "INSERT INTO log_absen (id_user, absen) VALUES (?, NOW())",
-            [userId]
+            "INSERT INTO log_absen (idUser, absen, status) VALUES (?, NOW(), ?)",
+            [userId, "hadir"]
         )
 
         return res.json({message: "Absen berhasil", user: user[0], waktu: new Date()})

@@ -12,35 +12,35 @@ const SALT_ROUNDS = 12; // Untuk bcrypt
 module.exports = {
     //alur register
     register: async (req, res, next) => {
-        try {
-            const { username, pin, no_hp, nama_jurusan } = req.body;
-            const pinStr = pin.toString();
-            //validasi
-            if (!username || !pin) return res.status(400).json({ message: 'username & pin wajib'});
-            if (pinStr.length !== 6) {
-            return res.status(400).json({ message: 'pin harus memiliki 6 angka' });
-}
+            try {
+                const { username, pin, no_hp, nama_jurusan } = req.body;
+                const pinStr = pin.toString();
+                //validasi
+                if (!username || !pin) return res.status(400).json({ message: 'username & pin wajib'});
+                if (pinStr.length !== 6) {
+                    return res.status(400).json({ message: 'pin harus memiliki 6 angka' });
+                }
 
-            // pengecekan user
-            const [existing]= await pool.execute('SELECT id FROM users WHERE username =?', [username]);
-            if (existing.length > 0){
-                return res.status(409).json({ message: 'Username sadah terdaftar' });
-            }
-            //hash pengacakan password
-            const hashed = await bcrypt.hash(pin, SALT_ROUNDS);
+                // pengecekan user
+                const [existing]= await pool.execute('SELECT id FROM users WHERE username =?', [username]);
+                if (existing.length > 0){
+                    return res.status(409).json({ message: 'Username sadah terdaftar' });
+                }
+                //hash pengacakan password
+                const hashed = await bcrypt.hash(pin, SALT_ROUNDS);
 
-            //insert untuk user
-            const [result] = await pool.execute(
-                'INSERT INTO users (username, no_hp, nama_jurusan, pin) VALUES (?, ?, ?, ?)',
-                [username, no_hp || null, nama_jurusan || null, hashed]  
-            );
+                //insert untuk user
+                const [result] = await pool.execute(
+                    'INSERT INTO users (username, no_hp, nama_jurusan, pin) VALUES (?, ?, ?, ?)',
+                    [username, no_hp || null, nama_jurusan || null, hashed]  
+                );
 
-            const insertId = result.insertId;
-            return res.status(201).json({id: insertId, username, no_hp: no_hp || null, nama_jurusan: nama_jurusan || null});
-        } catch(err){
-        next(err);
-    }
-},
+                const insertId = result.insertId;
+                return res.status(201).json({id: insertId, username, no_hp: no_hp || null, nama_jurusan: nama_jurusan || null});
+            } catch(err){
+            next(err);
+        }
+    },
 
 // Login
     login: async(req, res, next) =>{
@@ -62,7 +62,7 @@ module.exports = {
             return res.json({
                 message: 'Login berhasil',
                 token,
-                user: { id: user.id, username: user.username, no_hp: user.no_hp, nama_jurusan: user.nama_jurusan}
+                user: { id: user.id, username: user.username, no_hp: user.no_hp, role_id: user.role_id, nama_jurusan: user.nama_jurusan}
             });
         }catch(err){
             next(err);
