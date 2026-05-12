@@ -1,28 +1,48 @@
-const express = require('express')
-const app = express()
-require("./Corn/AutoAlpha")
+const express = require("express")
+const cors = require("cors")
+const helmet = require("helmet")
+const rateLimit = require("express-rate-limit")
 require("dotenv").config()
-
+require("./Corn/AutoAlpha")
+const app = express()
+app.set("trust proxy", 1)
+app.use(helmet())
 app.use(express.json())
 
-const loginRoute = require("./Routes/LoginRoute") //< cuma ada login sama update pin
-const logAbsen = require("./Routes/LogAbsenR") //< log absen all, log absen by usr id, log absen get hari ini{today}
-const qrRoute = require("./Routes/QRroute") //< buat nampilin qr di halaman user
-const scannerQr = require("./Routes/ScannerR") //< buat admin ngescan qr user buat absen
-const userAkses = require("./Routes/UserRoute") //< akses user
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: "Terlalu banyak percobaan login"
+})
 
-app.use("/api/auth", loginRoute) //< "/login" dan "/update-pin" "/get-profile"
-app.use("/api/admin-only", logAbsen) //< "/log" || "/log/:id" || "/log-hari-ini"
-app.use("/api/kode-qr", qrRoute) //< "/qr"
-app.use("/api/scanner", scannerQr) //< "/scan"
-app.use("/api/user-akses", userAkses) //< "/izin" || "/histori"
+app.use("/api/auth/login", loginLimiter)
 
-app.get("/", (req, res) => {res.send("done yah ngafs");});
+app.use(cors({
+    origin: [
+        "https://zexdv.cloud",
+        "https://www.zexdv.cloud",
+    ],
+    credentials: true
+}))
 
+const loginRoute = require("./Routes/LoginRoute")
+const logAbsen = require("./Routes/LogAbsenR")
+const qrRoute = require("./Routes/QRroute")
+const scannerQr = require("./Routes/ScannerR")
+const userAkses = require("./Routes/UserRoute")
 
+app.use("/api/auth", loginRoute)
+app.use("/api/admin-only", logAbsen)
+app.use("/api/kode-qr", qrRoute)
+app.use("/api/scanner", scannerQr)
+app.use("/api/user-akses", userAkses)
 
-const PORT = process.env.PORT || 3000
+app.get("/", (req, res) => {
+    res.send("Backend Absensi Running")
+})
+
+const PORT = process.env.PORT || 3050
 
 app.listen(PORT, () => {
-    console.log(`Server running di http://localhost:${PORT}`)
+    console.log(`Server running on port ${PORT}`)
 })
