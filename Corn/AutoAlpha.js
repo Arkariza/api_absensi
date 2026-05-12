@@ -1,29 +1,45 @@
 const cron = require("node-cron")
 const db = require("../Config/db")
 
-cron.schedule("59 23 * * *", async() =>{
-    try{
+cron.schedule("59 23 * * *", async () => {
+    try {
         const today = new Date().getDay()
-        if(today === 0 || today === 6){
-            console.log("weekend, ga bisa alpha")
+
+        if (today === 0 || today === 6) {
+            console.log("Weekend, auto alpha dilewati")
             return
         }
 
-        console.log("mode auto alhpa on aktif")
+        console.log("Auto alpha aktif...")
 
-        const [exists] = await db.query(
-            `SELECT id FROM log_absen WHERE idUser = ? AND DATE(absen) = CURDATE()`,
-            [user.id]
+        const [users] = await db.query(
+            `SELECT id FROM users`
         )
 
-        if(exists.length === 0){
-            await db.query(
-                `INSERT INTO log_absen (idUser, absen, status) VALUES (?, NOW(), alpha)`,
-                [user.id, "alpha"]
+        for (const user of users) {
+
+            const [exists] = await db.query(
+                `SELECT id FROM log_absen 
+                 WHERE idUser = ? 
+                 AND DATE(absen) = CURDATE()`,
+                [user.id]
             )
-            console.log(`user ${user.id} alpha`)
+
+            if (exists.length === 0) {
+
+                await db.query(
+                    `INSERT INTO log_absen (idUser, absen, status) 
+                     VALUES (?, NOW(), ?)`,
+                    [user.id, "alpha"]
+                )
+
+                console.log(`User ${user.id} alpha`)
+            }
         }
-    }catch(error){
-        console.log("auto alpha error", error.message)
+
+        console.log("Auto alpha selesai")
+
+    } catch (error) {
+        console.log("Auto alpha error:", error.message)
     }
 })
