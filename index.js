@@ -8,6 +8,8 @@ const app = express()
 app.set("trust proxy", 1)
 app.use(helmet())
 app.use(express.json())
+app.use("/uploads", express.static("uploads"))
+
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -18,10 +20,9 @@ const loginLimiter = rateLimit({
 app.use("/api/auth/login", loginLimiter)
 
 app.use(cors({
-    origin: [
-        "https://zexdv.cloud",
-        "https://www.zexdv.cloud",
-    ],
+    origin: function (origin, callback) {
+        callback(null, true)
+    },
     credentials: true
 }))
 
