@@ -1,8 +1,17 @@
 const db = require("../Config/db")
 
+function withImageUrl(req, logs) {
+    return logs.map((log) => ({
+        ...log,
+        bukti_url: log.bukti_keterangan
+            ? `${req.protocol}://${req.get("host")}${log.bukti_keterangan}`
+            : null
+    }))
+}
+
 exports.getLogs = async (req, res) => {
     try {
-        const [logs] = await db.query(
+        const result = await db.query(
             `SELECT 
                 l.id,
                 u.username,
@@ -13,13 +22,13 @@ exports.getLogs = async (req, res) => {
                 l.detail_keterangan,
                 l.bukti_keterangan
              FROM log_absen l
-             JOIN users u ON u.id = l.idUser
+             JOIN users u ON u.id = l.iduser
              ORDER BY l.absen DESC`
         )
 
         res.json({
             message: "Data Absensi berhasil di load",
-            data: logs
+            data: withImageUrl(req, result.rows)
         })
 
     } catch (error) {
@@ -34,7 +43,7 @@ exports.getLogsByUser = async (req, res) => {
     try {
         const { id } = req.params
 
-        const [logs] = await db.query(
+        const result = await db.query(
             `SELECT 
                 l.id,
                 u.username,
@@ -45,15 +54,15 @@ exports.getLogsByUser = async (req, res) => {
                 l.detail_keterangan,
                 l.bukti_keterangan
              FROM log_absen l
-             JOIN users u ON u.id = l.idUser
-             WHERE u.id = ?
+             JOIN users u ON u.id = l.iduser
+             WHERE u.id = $1
              ORDER BY l.absen DESC`,
             [id]
         )
 
         res.json({
             message: "Berhasil ambil log user",
-            data: logs
+            data: withImageUrl(req, result.rows)
         })
 
     } catch (error) {
@@ -66,7 +75,7 @@ exports.getLogsByUser = async (req, res) => {
 
 exports.getTodayLogs = async (req, res) => {
     try {
-        const [logs] = await db.query(
+        const result = await db.query(
             `SELECT 
                 l.id,
                 u.username,
@@ -77,14 +86,14 @@ exports.getTodayLogs = async (req, res) => {
                 l.detail_keterangan,
                 l.bukti_keterangan
              FROM log_absen l
-             JOIN users u ON u.id = l.idUser
-             WHERE DATE(l.absen) = CURDATE()
+             JOIN users u ON u.id = l.iduser
+             WHERE DATE(l.absen) = CURRENT_DATE
              ORDER BY l.absen DESC`
         )
 
         res.json({
             message: "Log absensi hari ini",
-            data: logs
+            data: withImageUrl(req, result.rows)
         })
 
     } catch (error) {

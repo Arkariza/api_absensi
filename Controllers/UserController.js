@@ -3,12 +3,8 @@ const db = require("../Config/db")
 module.exports = {
     kirimIzin: async (req, res) => {
         try {
-
             const userId = req.user.id
             const { status, detail_keterangan } = req.body
-            const bukti_keterangan = req.file
-                ? req.file.filename
-                : null
 
             if (!["izin", "sakit"].includes(status)) {
                 return res.status(400).json({
@@ -16,15 +12,19 @@ module.exports = {
                 })
             }
 
-            const [already] = await db.query(
+            const bukti_keterangan = req.file
+                ? `/uploads/${req.file.filename}`
+                : null
+
+            const alreadyResult = await db.query(
                 `SELECT id 
                  FROM log_absen 
-                 WHERE idUser = ? 
-                 AND DATE(absen) = CURDATE()`,
+                 WHERE iduser = $1
+                 AND DATE(absen) = CURRENT_DATE`,
                 [userId]
             )
 
-            if (already.length > 0) {
+            if (alreadyResult.rows.length > 0) {
                 return res.status(400).json({
                     message: "hari ini telah mengisi absensi"
                 })
@@ -33,13 +33,13 @@ module.exports = {
             await db.query(
                 `INSERT INTO log_absen 
                 (
-                    idUser,
+                    iduser,
                     absen,
                     status,
                     detail_keterangan,
                     bukti_keterangan
                 ) 
-                VALUES (?, NOW(), ?, ?, ?)`,
+                VALUES ($1, NOW(), $2, $3, $4)`,
                 [
                     userId,
                     status,
@@ -50,11 +50,14 @@ module.exports = {
 
             return res.json({
                 message: `Berhasil dikirim ke Admin ${status}`,
-                image: bukti_keterangan
+                detail_keterangan: detail_keterangan || null,
+                bukti_keterangan,
+                image_url: bukti_keterangan
+                    ? `${req.protocol}://${req.get("host")}${bukti_keterangan}`
+                    : null
             })
 
         } catch (error) {
-
             return res.status(500).json({
                 message: "kesalahan wak",
                 error: error.message
@@ -64,18 +67,17 @@ module.exports = {
 
     absenKetuaKelas: async (req, res) => {
         try {
-
             const userId = req.user.id
 
-            const [already] = await db.query(
+            const alreadyResult = await db.query(
                 `SELECT id 
                  FROM log_absen 
-                 WHERE idUser = ? 
-                 AND DATE(absen) = CURDATE()`,
+                 WHERE iduser = $1
+                 AND DATE(absen) = CURRENT_DATE`,
                 [userId]
             )
 
-            if (already.length > 0) {
+            if (alreadyResult.rows.length > 0) {
                 return res.status(400).json({
                     message: "hari ini sudah absen"
                 })
@@ -84,11 +86,11 @@ module.exports = {
             await db.query(
                 `INSERT INTO log_absen 
                 (
-                    idUser,
+                    iduser,
                     absen,
                     status
                 )
-                VALUES (?, NOW(), ?)`,
+                VALUES ($1, NOW(), $2)`,
                 [
                     userId,
                     "hadir"
@@ -100,7 +102,6 @@ module.exports = {
             })
 
         } catch (error) {
-
             return res.status(500).json({
                 message: "gagal absen",
                 error: error.message
@@ -112,7 +113,7 @@ module.exports = {
         try {
             const userId = req.user.id
 
-            const [histori] = await db.query(
+            const historiResult = await db.query(
                 `SELECT 
                     id, 
                     absen, 
@@ -120,14 +121,14 @@ module.exports = {
                     detail_keterangan,
                     bukti_keterangan
                  FROM log_absen 
-                 WHERE idUser = ? 
+                 WHERE iduser = $1
                  ORDER BY absen DESC`,
                 [userId]
             )
 
             return res.json({
                 message: "behasil mengambil data Absen User",
-                data: histori
+                data: historiResult.rows
             })
 
         } catch (error) {

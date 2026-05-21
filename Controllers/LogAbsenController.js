@@ -1,63 +1,76 @@
 const db = require("../Config/db")
 const crypto = require("crypto")
+
 const SECRET = "JWT_TOKEN"
 
-exports.scanQR = async(req, res) => {
-    try{
-        const {qr} = req.body
+exports.scanQR = async (req, res) => {
+    try {
+        const { qr } = req.body
 
-        if(!qr){
-            return res.status(400).json({message: "QR kosong"})
+        if (!qr) {
+            return res.status(400).json({ message: "QR kosong" })
         }
 
         const parts = qr.split(":")
-        const [userId, timestamp, hash] = parts
 
-        if(parts.length !==3){
-            return res.status(400).json({message: "Format QR Invalid"})
+        if (parts.length !== 3) {
+            return res.status(400).json({ message: "Format QR Invalid" })
         }
 
-        const validHash = crypto
-        .createHmac("sha256", SECRET)
-        .update(`${userId}:${timestamp}`)
-        .digest("hex")
+        const [userId, timestamp, hash] = parts
 
-        if(hash !== validHash){
-            return res.status(400).json({message: "QR gak Valid"})
+        const validHash = crypto
+            .createHmac("sha256", SECRET)
+            .update(`${userId}:${timestamp}`)
+            .digest("hex")
+
+        if (hash !== validHash) {
+            return res.status(400).json({ message: "QR gak Valid" })
         }
 
         const now = Date.now()
         const maxAge = 15 * 1000
 
-        if(now - Number(timestamp) > maxAge){
-            return res.status(400).json({message: "QR Expire, Silahkan Restart"})
+        if (now - Number(timestamp) > maxAge) {
+            return res.status(400).json({ message: "QR Expire, Silahkan Restart" })
         }
 
-        const [user] = await db.query(
-            "SELECT id, username FROM users WHERE id = ?",
+        const userResult = await db.query(
+            "SELECT id, username FROM users WHERE id = $1",
             [userId]
         )
 
-        if(!user.length){
-            return res.status(404).json({message: "User gak ditemukan"})
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: "User gak ditemukan" })
         }
 
-        const [already] = await db.query(
-            "SELECT id FROM log_absen WHERE idUser = ? AND DATE(absen) = CURDATE()",
+        const alreadyResult = await db.query(
+            `SELECT id
+             FROM log_absen
+             WHERE iduser = $1
+             AND DATE(absen) = CURRENT_DATE`,
             [userId]
         )
 
-        if(already.length > 0){
-            return res.status(400).json({message: "User ini sudah Absen"})
+        if (alreadyResult.rows.length > 0) {
+            return res.status(400).json({ message: "User ini sudah Absen" })
         }
 
         await db.query(
-            "INSERT INTO log_absen (idUser, absen, status) VALUES (?, NOW(), ?)",
+            `INSERT INTO log_absen (iduser, absen, status)
+             VALUES ($1, NOW(), $2)`,
             [userId, "hadir"]
         )
 
-        return res.json({message: "Absen berhasil", user: user[0], waktu: new Date()})
-    }catch(error){
-        return res.status(500).json({message: "Bahaya Nih", error: error.message})
+        return res.json({
+            message: "Absen berhasil",
+            user: userResult.rows[0],
+            waktu: new Date()
+        })
+    } catch (error) {
+        return res.status(500).json({
+            message: "Bahaya Nih",
+            error: error.message
+        })
     }
 }

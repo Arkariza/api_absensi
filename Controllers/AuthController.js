@@ -1,127 +1,175 @@
 // authController
-const pool = require('../config/db');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const pool = require("../config/db")
+const bcrypt = require("bcrypt")
+const jwt = require("jsonwebtoken")
+require("dotenv").config()
 
-const jwtSecret = process.env.JWT_SECRET;
-if (!jwtSecret) throw new Error('JWT_SECRET belum di set');
+const jwtSecret = process.env.JWT_SECRET
+if (!jwtSecret) throw new Error("JWT_SECRET belum di set")
 
-const SALT_ROUNDS = 12; // Untuk bcrypt
+const SALT_ROUNDS = 12
 
 module.exports = {
-    //alur register
     register: async (req, res, next) => {
-            try {
-                const { username, pin, no_hp, nama_jurusan } = req.body;
-                const pinStr = pin.toString();
-                //validasi
-                if (!username || !pin) return res.status(400).json({ message: 'username & pin wajib'});
-                if (pinStr.length !== 6) {
-                    return res.status(400).json({ message: 'pin harus memiliki 6 angka' });
-                }
+        try {
+            const { username, pin, no_hp, nama_jurusan } = req.body
+            const pinStr = pin?.toString()
 
-                // pengecekan user
-                const [existing]= await pool.execute('SELECT id FROM users WHERE username =?', [username]);
-                if (existing.length > 0){
-                    return res.status(409).json({ message: 'Username sadah terdaftar' });
-                }
-                //hash pengacakan password
-                const hashed = await bcrypt.hash(pin, SALT_ROUNDS);
+            if (!username || !pin) {
+                return res.status(400).json({ message: "username & pin wajib" })
+            }
 
-                //insert untuk user
-                const [result] = await pool.execute(
-                    'INSERT INTO users (username, no_hp, nama_jurusan, pin) VALUES (?, ?, ?, ?)',
-                    [username, no_hp || null, nama_jurusan || null, hashed]  
-                );
+            if (pinStr.length !== 6) {
+                return res.status(400).json({ message: "pin harus memiliki 6 angka" })
+            }
 
-                const insertId = result.insertId;
-                return res.status(201).json({id: insertId, username, no_hp: no_hp || null, nama_jurusan: nama_jurusan || null});
-            } catch(err){
-            next(err);
+            const existingResult = await pool.query(
+                "SELECT id FROM users WHERE username = $1",
+                [username]
+            )
+
+            if (existingResult.rows.length > 0) {
+                return res.status(409).json({ message: "Username sudah terdaftar" })
+            }
+
+            const hashed = await bcrypt.hash(pinStr, SALT_ROUNDS)
+
+            const insertResult = await pool.query(
+                `INSERT INTO users (username, no_hp, nama_jurusan, pin)
+                 VALUES ($1, $2, $3, $4)
+                 RETURNING id`,
+                [username, no_hp || null, nama_jurusan || null, hashed]
+            )
+
+            const insertId = insertResult.rows[0].id
+
+            return res.status(201).json({
+                id: insertId,
+                username,
+                no_hp: no_hp || null,
+                nama_jurusan: nama_jurusan || null
+            })
+        } catch (err) {
+            next(err)
         }
     },
 
-// Login
-    login: async(req, res, next) =>{
-        try{
-            const { username, pin } = req.body;
-            if (!username || !pin) return res.status(400).json({ message: 'username & pin wajib'});
+    login: async (req, res, next) => {
+        try {
+            const { username, pin } = req.body
 
-            // ambil user
-            const [rows] = await pool.execute('SELECT id, username, pin, role_id, nama_jurusan, no_hp FROM users WHERE username = ?', [username]);
-            if (rows.length ===0) return res.status(401).json({ message:'Invalid credential'});
-            //pasword
-            const user = rows[0]
-            const match = await bcrypt.compare(pin, user.pin);
-            if (!match) return res.status(401).json({ message: 'Invalid credential' });
-            //sign JWT
-            const payload = {id: user.id, username: user.username, role_id: user.role_id};
-            const token = jwt.sign(payload, jwtSecret, { expiresIn:'30d' });
+            if (!username || !pin) {
+                return res.status(400).json({ message: "username & pin wajib" })
+            }
+
+            const result = await pool.query(
+                `SELECT id, username, pin, role_id, nama_jurusan, no_hp
+                 FROM users
+                 WHERE username = $1`,
+                [username]
+            )
+
+            if (result.rows.length === 0) {
+                return res.status(401).json({ message: "Invalid credential" })
+            }
+
+            const user = result.rows[0]
+            const match = await bcrypt.compare(pin.toString(), user.pin)
+
+            if (!match) {
+                return res.status(401).json({ message: "Invalid credential" })
+            }
+
+            const payload = {
+                id: user.id,
+                username: user.username,
+                role_id: user.role_id
+            }
+
+            const token = jwt.sign(payload, jwtSecret, { expiresIn: "30d" })
 
             return res.json({
-                message: 'Login berhasil',
+                message: "Login berhasil",
                 token,
-                user: { id: user.id, username: user.username, no_hp: user.no_hp, role_id: user.role_id, nama_jurusan: user.nama_jurusan}
-            });
-        }catch(err){
-            next(err);
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    no_hp: user.no_hp,
+                    role_id: user.role_id,
+                    nama_jurusan: user.nama_jurusan
+                }
+            })
+        } catch (err) {
+            next(err)
         }
     },
 
-    //update pin
-    updatePin: async(req, res, next) => {
+    updatePin: async (req, res, next) => {
         try {
-            const { oldPin, newPin } = req.body;
-            const userId = req.user.id;
+            const { oldPin, newPin } = req.body
+            const userId = req.user.id
 
             if (!oldPin || !newPin) {
-                return res.status(400).json({ message: "oldPin & newPin wajib" });
+                return res.status(400).json({ message: "oldPin & newPin wajib" })
             }
 
             if (newPin.toString().length !== 6) {
-                return res.status(400).json({ message: "PIN baru harus 6 digit" });
+                return res.status(400).json({ message: "PIN baru harus 6 digit" })
             }
 
-            const [rows] = await pool.execute(
-                "SELECT id, pin FROM users WHERE id = ?", [userId]
-            );
+            const result = await pool.query(
+                "SELECT id, pin FROM users WHERE id = $1",
+                [userId]
+            )
 
-            if (rows.length === 0) {
+            if (result.rows.length === 0) {
                 return res.status(404).json({ message: "User tidak ditemukan" })
             }
 
-            const user = rows[0];
+            const user = result.rows[0]
 
-            const match = await bcrypt.compare(oldPin, user.pin)
+            const match = await bcrypt.compare(oldPin.toString(), user.pin)
+
             if (!match) {
                 return res.status(400).json({ message: "PIN lama salah" })
             }
 
-            const hashed = await bcrypt.hash(newPin, SALT_ROUNDS)
+            const hashed = await bcrypt.hash(newPin.toString(), SALT_ROUNDS)
 
-            await pool.execute(
-                "UPDATE users SET pin = ? WHERE id = ?", [hashed, userId]
-            );
+            const updateResult = await pool.query(
+                "UPDATE users SET pin = $1 WHERE id = $2",
+                [hashed, userId]
+            )
+
+            if (updateResult.rowCount === 0) {
+                return res.status(404).json({ message: "User tidak ditemukan" })
+            }
 
             return res.json({ message: "PIN berhasil diupdate" })
-
-        }catch(err){
+        } catch (err) {
             next(err)
         }
     },
 
-    getProfile: async(req, res, next) => {
-        try{
-            const [rows] = await pool.execute(
-                `SELECT username, no_hp, nama_jurusan FROM users WHERE id = ?`, [req.user.id]
+    getProfile: async (req, res, next) => {
+        try {
+            const result = await pool.query(
+                `SELECT username, no_hp, nama_jurusan
+                 FROM users
+                 WHERE id = $1`,
+                [req.user.id]
             )
-            if (rows.length === 0) {
-                return res.status(404).json({message: "User tidak ditemukan"})
-            }   
-            return res.json({message: "Profile berhasil diambil",user: rows[0]})
-        }catch(err){
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: "User tidak ditemukan" })
+            }
+
+            return res.json({
+                message: "Profile berhasil diambil",
+                user: result.rows[0]
+            })
+        } catch (err) {
             next(err)
         }
     }
-}       
+}
