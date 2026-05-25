@@ -42,13 +42,13 @@ app.get("/", (req, res) => {
     res.send("Backend Absensi Running")
 })
 
-app.get("/ping", (req, res) => {
-    return res.status(200).json({
-        message: "pong",
-        uptime: process.uptime(),
-        timestamp: new Date()
-    })
-})
+// app.get("/ping", (req, res) => {
+//     return res.status(200).json({
+//         message: "pong",
+//         uptime: process.uptime(),
+//         timestamp: new Date()
+//     })
+// })
 
 const PORT = process.env.PORT || 3050
 

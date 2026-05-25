@@ -1,5 +1,4 @@
-// authController
-const pool = require("../config/db")
+const pool = require("../Config/db")
 const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 require("dotenv").config()
@@ -62,22 +61,26 @@ module.exports = {
                 return res.status(400).json({ message: "username & pin wajib" })
             }
 
+            const usernameClean = username.trim()
+            const pinClean = pin.toString().trim()
+
             const result = await pool.query(
                 `SELECT id, username, pin, role_id, nama_jurusan, no_hp
-                 FROM users
-                 WHERE username = $1`,
-                [username]
+             FROM users
+             WHERE LOWER(username) = LOWER($1)`,
+                [usernameClean]
             )
 
             if (result.rows.length === 0) {
-                return res.status(401).json({ message: "Invalid credential" })
+                return res.status(401).json({ message: "Nama Salah" })
             }
 
             const user = result.rows[0]
-            const match = await bcrypt.compare(pin.toString(), user.pin)
+
+            const match = await bcrypt.compare(pinClean, user.pin)
 
             if (!match) {
-                return res.status(401).json({ message: "Invalid credential" })
+                return res.status(401).json({ message: "Pin Salah Wok" })
             }
 
             const payload = {
@@ -86,7 +89,7 @@ module.exports = {
                 role_id: user.role_id
             }
 
-            const token = jwt.sign(payload, jwtSecret, { expiresIn: "30d" })
+            const token = jwt.sign(payload, jwtSecret, { expiresIn: "2h" })
 
             return res.json({
                 message: "Login berhasil",
@@ -99,6 +102,7 @@ module.exports = {
                     nama_jurusan: user.nama_jurusan
                 }
             })
+
         } catch (err) {
             next(err)
         }
