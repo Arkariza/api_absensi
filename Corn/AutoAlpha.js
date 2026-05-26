@@ -1,36 +1,39 @@
 const cron = require("node-cron")
 const db = require("../Config/db")
 
-cron.schedule("59 23 * * *", async () => {
+cron.schedule("0 23 * * 1-5", async () => {
     try {
-        const today = new Date().getDay()
-
-        if (today === 0 || today === 6) {
-            console.log("Weekend, auto alpha dilewati")
-            return
-        }
-
         console.log("Auto alpha aktif...")
 
-        const [users] = await db.query(
-            `SELECT id FROM users`
+        const usersResult = await db.query(
+            `SELECT id FROM users WHERE role_id = $1`,
+            [2]
         )
 
-        for (const user of users) {
+        const users = usersResult.rows
 
-            const [exists] = await db.query(
-                `SELECT id FROM log_absen 
-                 WHERE idUser = ? 
-                 AND DATE(absen) = CURDATE()`,
+        for (const user of users) {
+            const existsResult = await db.query(
+                `SELECT id 
+                 FROM log_absen 
+                 WHERE iduser = $1
+                 AND DATE(absen) = CURRENT_DATE`,
                 [user.id]
             )
 
-            if (exists.length === 0) {
-
+            if (existsResult.rows.length === 0) {
                 await db.query(
-                    `INSERT INTO log_absen (idUser, absen, status) 
-                     VALUES (?, NOW(), ?)`,
-                    [user.id, "alpha"]
+                    `INSERT INTO log_absen 
+                    (
+                        iduser,
+                        absen,
+                        status
+                    ) 
+                    VALUES ($1, NOW(), $2)`,
+                    [
+                        user.id,
+                        "alpha"
+                    ]
                 )
 
                 console.log(`User ${user.id} alpha`)
@@ -42,4 +45,7 @@ cron.schedule("59 23 * * *", async () => {
     } catch (error) {
         console.log("Auto alpha error:", error.message)
     }
+
+}, {
+    timezone: "Asia/Jakarta"
 })
