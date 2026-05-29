@@ -21,7 +21,7 @@ function ketuaKelasCheck(req, res, next) {
     }
 
     return res.status(403).json({
-        message: "Akses ditolak (Ketua kelas only)"
+        message: "Akses ditolak (ketua jurusan only)"
     })
 }
 
