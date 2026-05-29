@@ -69,7 +69,7 @@ exports.scanQR = async (req, res) => {
         })
     } catch (error) {
         return res.status(500).json({
-            message: "Bahaya Nih",
+            message: "Absen Gagal",
             error: error.message
         })
     }

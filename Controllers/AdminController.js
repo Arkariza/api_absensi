@@ -33,7 +33,7 @@ exports.getLogs = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({
-            message: "Something Wrong Just I can Feel it",
+            message: "Data Absensi Gagal di load",
             error: error.message
         })
     }

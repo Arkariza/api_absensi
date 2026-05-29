@@ -80,7 +80,7 @@ module.exports = {
             const match = await bcrypt.compare(pinClean, user.pin)
 
             if (!match) {
-                return res.status(401).json({ message: "Pin Salah Wok" })
+                return res.status(401).json({ message: "Pin Salah" })
             }
 
             const payload = {

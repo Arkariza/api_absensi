@@ -59,7 +59,7 @@ module.exports = {
 
         } catch (error) {
             return res.status(500).json({
-                message: "kesalahan wak",
+                message: "gagal mengirim",
                 error: error.message
             })
         }
@@ -98,7 +98,7 @@ module.exports = {
             )
 
             return res.json({
-                message: "Absensi ketua kelas berhasil"
+                message: "Absensi Kepala Jurusan kelas berhasil"
             })
 
         } catch (error) {
@@ -133,7 +133,7 @@ module.exports = {
 
         } catch (error) {
             return res.status(500).json({
-                message: "bahaya nih",
+                message: "gagal mengambil data absen",
                 error: error.message
             })
         }
